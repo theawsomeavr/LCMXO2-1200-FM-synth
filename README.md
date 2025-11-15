@@ -7,8 +7,11 @@ place images in this thingy
 Dependecies:
 
 Lattice Diamond (3.14.0.75.2).
+
 GDC (GNU D compiler).
+
 openFPGALoader (https://github.com/trabucayre/openFPGALoader).
+
 A jtag programmer (dirtyjtag using an stm32f103 https://github.com/dirtyjtag/DirtyJTAG).
 
 Building:
