@@ -5,6 +5,7 @@ based on the Lattice LCMXO2-1200HC FPGA (aka tinyfpga).
 place images in this thingy
 
 Dependecies:
+
 Lattice Diamond (3.14.0.75.2).
 GDC (GNU D compiler).
 openFPGALoader (https://github.com/trabucayre/openFPGALoader).
