@@ -1,0 +1,1 @@
+`define FREQ_INC_BITS 17
