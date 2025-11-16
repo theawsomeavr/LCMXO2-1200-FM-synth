@@ -5,14 +5,17 @@ module Main #(
     input IO_main_clk,
     input IO_audio_clk,
 
-    input wire IO_SPI_cs,
+    output reg IO_Flag_read,
+    output reg [3:0] IO_Flag_addr,
+    input wire [1:0] IO_Flag_value,
 
+    input wire IO_SPI_cs,
     output reg [9:0] IO_User_Mem_addr,
     input wire [17:0] IO_User_Mem_value,
 
-    output reg TestA,
-    output reg TestB,
-    output reg Test
+    output reg IO_chan_A, IO_chan_B, IO_chan_C, IO_chan_D,
+    output reg IO_chan_E, IO_chan_F, IO_chan_G, IO_chan_H,
+    output reg T_k1
 );  
 
 reg sync_registers;
@@ -116,69 +119,113 @@ reg [ACC_RESOLUTION-1:0] prev_acc;
 reg [ACC_RESOLUTION-1:0] acc; // 3 slots
 reg [ACC_RESOLUTION-1:0] inc; // 3 slots
 
-reg [8:0] Volume; // 1 slots
 reg [8:0] Attack; // 1 slots
-
 reg [8:0] Decay; // 1 slots
 reg [8:0] Sustain; // 1 slots
-
 reg [8:0] Release; // 1 slots
+reg [8:0] ADSR_Volume; // 1 slots
+reg [8:0] User_Volume; // 1 slots
 
 reg [9:0] Voice_base_addr;
 
-`define OP_OFFSET_ACC_L       0
-`define OP_OFFSET_ACC_H_INC_L 1
-`define OP_OFFSET_INC_H       2
 
-`define OP_REG_SIZE           4
+/****************************************
+*  LSB [8:0]        | MSB [17:9]        *
+*-------------------------------------- *
+*        ACC[17:0] (18 bits)            *
+*        INC[17:0] (18 bits)            *
+*  ACC[21:18] (4 b) | INC[21:18] (4 b)  *
+*  Attack           | Decay             *
+*  Sustain          | Release           *
+*  ADSR Volume      | User Volume       *
+*  Algorithm        |                   *
+****************************************/
+
+`define OP_OFFSET_ACC_L           0
+`define OP_OFFSET_INC_L           1
+`define OP_OFFSET_ACC_H_INC_H     2
+`define OP_OFFSET_ATTACK_DECAY    3
+`define OP_OFFSET_SUSTAIN_RELEASE 4
+`define OP_OFFSET_ADSR_USR_VOL    5
+`define OP_OFFSET_ALGORITHM       6
+
+`define OP_REG_SIZE           7
+
+// reg [1:0] ADSR_states[0:95];
+// reg [1:0] ADSR_new_state;
+// reg [8:0] ADSR_new_volume;
 
 // Synthesis routine
 always @(posedge IO_main_clk) begin
     // Test <= Enable_synth;
     if (Enable_synth) begin
         case (Dispatcher_cur_ins)
-            // Load acc L
+            // Load ADSR data
             4'h0: begin
-                acc[17:0] <= _R_Mem_value;
-                _R_Mem_addr <= Voice_base_addr + `OP_OFFSET_ACC_H_INC_L;
+                Attack <= _R_Mem_value[8:0];
+                Decay  <= _R_Mem_value[17:9];
+                _R_Mem_addr <= Voice_base_addr + `OP_OFFSET_SUSTAIN_RELEASE;
             end
-            // Load acc H, inc L
             4'h1: begin
-                acc[21:18] <= _R_Mem_value[3:0];
-                _R_Mem_addr <= Voice_base_addr + `OP_OFFSET_INC_H;
-
-                inc[17:0] <= IO_User_Mem_value;
-                IO_User_Mem_addr <= IO_User_Mem_addr + 1;
+                Sustain <= _R_Mem_value[8:0];
+                Release <= _R_Mem_value[17:9];
+                _R_Mem_addr <= Voice_base_addr + `OP_OFFSET_ADSR_USR_VOL;
             end
-            // Load inc H
             4'h2: begin
-                inc[21:18] <= IO_User_Mem_value;
-                // inc[21:9] <= _R_Mem_value[12:0];
-                IO_User_Mem_addr <= IO_User_Mem_addr + 1;
+                ADSR_Volume <= _R_Mem_value[8:0];
+                User_Volume <= _R_Mem_value[17:9];
+                _R_Mem_addr <= Voice_base_addr + `OP_OFFSET_ACC_L;
             end
-            // Compute phase
+
+            // Load acc L
             4'h3: begin
+                acc[17:0] <= _R_Mem_value;
+                _R_Mem_addr <= Voice_base_addr + `OP_OFFSET_INC_L;
+            end
+            // Load inc L
+            4'h4: begin
+                inc[17:0] <= _R_Mem_value;
+                _R_Mem_addr <= Voice_base_addr + `OP_OFFSET_ACC_H_INC_H;
+            end
+            // Load acc H and inc H
+            4'h5: begin
+                acc[21:18] <= _R_Mem_value[3:0];
+                inc[21:18] <= _R_Mem_value[11:8];
+            end
+
+            // Compute phase
+            4'h6: begin
                 acc <= acc + inc;
             end
             // Toogle and queue write
-            4'h4: begin
-                if ((Dispatcher_cur_voice == 0) && (Dispatcher_cur_op == 5)) begin
-                    Test <= acc[21];
+            4'h7: begin
+                if ((Dispatcher_cur_voice == 0)) begin
+                    if (Dispatcher_cur_op == 5) IO_chan_A <= acc[21];
+                    if (Dispatcher_cur_op == 4) IO_chan_B <= acc[21];
+                    if (Dispatcher_cur_op == 3) IO_chan_C <= acc[21];
+                    if (Dispatcher_cur_op == 2) IO_chan_D <= acc[21];
+                    if (Dispatcher_cur_op == 1) IO_chan_E <= acc[21];
+                    if (Dispatcher_cur_op == 0) IO_chan_F <= acc[21];
+                end
+            end
+            4'h8: begin
+                if ((Dispatcher_cur_voice == 1)) begin
+                    if (Dispatcher_cur_op == 5) IO_chan_G <= acc[21];
+                    if (Dispatcher_cur_op == 4) IO_chan_H <= acc[21];
                 end
             end
 
             4'hb: begin
                 prev_acc <= acc;
                 Voice_base_addr = Voice_base_addr + `OP_REG_SIZE;
-                _R_Mem_addr = Voice_base_addr + `OP_OFFSET_ACC_L;
+                _R_Mem_addr = Voice_base_addr + `OP_OFFSET_ATTACK_DECAY;
             end
             default: ;
         endcase
     end else begin
-        IO_User_Mem_addr <= 0;
         Voice_base_addr <= 0;
 
-        _R_Mem_addr <= 0;
+        _R_Mem_addr <= `OP_OFFSET_ATTACK_DECAY;
     end
 end
 
@@ -187,29 +234,52 @@ reg [9:0] Sync_base_addr;
 always @(posedge IO_main_clk) begin
     _W_Mem_en_L <= 0;
     _W_Mem_en_H <= 0;
+    IO_Flag_read <= 0;
 
     if(Enable_reg_sync) begin
         case (Dispatcher_cur_ins)
+            // Sync acc L value
             4'h0: begin
+
+                IO_Flag_read <= 1;
+                IO_Flag_addr <= 0;
+                // [1:0] IO_Flag_value;
+
                 _W_Mem_addr <= Sync_base_addr + `OP_OFFSET_ACC_L;
                 _W_Mem_value <= prev_acc[17:0];
                 _W_Mem_en_L <= 1;
                 _W_Mem_en_H <= 1;
             end
+            // Sync inc L
             4'h1: begin
-                _W_Mem_addr <= Sync_base_addr + `OP_OFFSET_ACC_H_INC_L;
-                _W_Mem_value[3:0] <= prev_acc[21:18];
+                T_k1 <= IO_Flag_value[0];
+
+                _W_Mem_addr <= Sync_base_addr + `OP_OFFSET_INC_L;
+                _W_Mem_value <= IO_User_Mem_value;
+
                 _W_Mem_en_L <= 1;
+                _W_Mem_en_H <= 1;
+                IO_User_Mem_addr <= IO_User_Mem_addr + 1;
+            end 
+            // Sync acc H and inc H
+            4'h2: begin
+                _W_Mem_addr <= Sync_base_addr + `OP_OFFSET_ACC_H_INC_H;
+                _W_Mem_value[3:0] <= prev_acc[21:18];
+                _W_Mem_value[11:8] <= IO_User_Mem_value[3:0];
+
+                _W_Mem_en_L <= 1;
+                _W_Mem_en_H <= 1;
             end 
 
             4'hb: begin
                 Sync_base_addr <= Sync_base_addr + `OP_REG_SIZE;
+                IO_User_Mem_addr <= IO_User_Mem_addr + 1;
             end
-
             default:;
         endcase
     end else begin
         Sync_base_addr <= 0;
+        IO_User_Mem_addr <= 0;
     end
 end
 

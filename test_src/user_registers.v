@@ -8,6 +8,10 @@ module UserRegisters (
     input wire  [9:0] IO_R_Mem_addr,
     output wire [17:0] IO_R_Mem_value,
 
+    input wire IO_Flag_read,
+    input wire [3:0] IO_Flag_addr,
+    output reg [1:0] IO_Flag_value,
+
     output reg Test,
     output reg TestA,
     output reg TestB
@@ -39,16 +43,29 @@ BlockRam UserMemH (
     .r_value(IO_R_Mem_value[17:9])
 );
 
-// reg SPI_prev_cs;
-// reg SPI_begin_selection;
-// reg SPI_end_selection;
-// always @(posedge IO_main_clk) begin
-//     if (SPI_prev_cs != IO_SPI_cs) begin
-//         if (!IO_SPI_cs) SPI_begin_selection <= 1;
-//     end else SPI_begin_selection <= 0;
-//
-//     SPI_prev_cs <= IO_SPI_cs;
-// end
+reg _Flag_write;
+wire [3:0] _W_Flag_addr;
+wire [1:0] _W_Flag_value;
+
+assign _W_Flag_addr = _W_Mem_addr[3:0];
+assign _W_Flag_value = _W_Mem_value[1:0];
+
+reg [1:0] flag_registers[0:15];
+
+// Clearable flags when read
+always @(posedge IO_main_clk) begin
+    if (IO_Flag_read) begin
+        IO_Flag_value <= flag_registers[IO_Flag_addr];
+    end
+
+    if (_Flag_write) begin
+        flag_registers[_W_Flag_addr] <= _W_Flag_value;
+    end
+    else if (IO_Flag_read) begin
+        // Clear on read
+        flag_registers[IO_Flag_addr] <= 0;
+    end
+end
 
 reg [3:0] write_state;
 reg [3:0] new_write_state;
@@ -64,6 +81,7 @@ initial begin
 end
 
 reg safe_SPI_cs;
+reg write_to_flags;
 
 always @(posedge IO_main_clk) begin
     safe_SPI_cs <= IO_SPI_cs;
@@ -72,18 +90,9 @@ end
 always @(posedge IO_main_clk) begin
     _W_Mem_en_L <= 0;
     _W_Mem_en_H <= 0;
+    _Flag_write <= 0;
 
     if (IO_SPI_data_ready) begin
-        TestB <=
-            IO_SPI_data[7] |
-            IO_SPI_data[6] |
-            IO_SPI_data[5] |
-            IO_SPI_data[4] |
-            IO_SPI_data[3] |
-            IO_SPI_data[2] |
-            IO_SPI_data[1] |
-            IO_SPI_data[0];
-
         case (write_state)
             `SPI_WAIT_ADDR_L: begin
                 _W_Mem_addr[6:0] <= IO_SPI_data[7:1];
@@ -93,6 +102,8 @@ always @(posedge IO_main_clk) begin
             end
             `SPI_WAIT_ADDR_H: begin
                 _W_Mem_addr[9:7] <= IO_SPI_data[2:0];
+                write_to_flags <= IO_SPI_data[7];
+
                 new_write_state <= `SPI_WAIT_VALUE_L;
             end
             `SPI_WAIT_VALUE_L: begin
@@ -100,16 +111,19 @@ always @(posedge IO_main_clk) begin
                 new_write_state <= `SPI_WAIT_VALUE_H;
             end
             `SPI_WAIT_VALUE_H: begin
-                Test <= !Test;
                 _W_Mem_value[8] <= IO_SPI_data[0];
 
-
-                if (!_W_Mem_slot) begin
-                    TestA <= !TestA;
-                    _W_Mem_en_L <= 1;
+                if (write_to_flags) begin
+                    Test <= !Test;
+                    _Flag_write <= 1;
                 end else begin
-                    _W_Mem_en_H <= 1;
-                end
+                    // Write to Block RAM
+                    if (!_W_Mem_slot) begin
+                        _W_Mem_en_L <= 1;
+                    end else begin
+                        _W_Mem_en_H <= 1;
+                    end
+                end 
                 new_write_state <= `SPI_WAIT_ADDR_L;
             end
             default: ;

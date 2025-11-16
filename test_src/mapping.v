@@ -4,11 +4,12 @@ module Mapping #(
     input wire pin13_sclk,
     input wire pin14_miso,
     input wire pin15_mosi,
-    input wire pin16_cs,
+    input wire pin12_sn,
     
-    output wire pin0, pin1, pin2, pin3,
-    output wire pin5,
-    output wire pin6_LED
+    output wire pin2, pin3, pin4, pin5,
+    output wire pin8, pin9, pin10, pin11,
+    output wire pin6_LED,
+    output wire pin16_cs
 );
 
 wire main_clk;
@@ -53,7 +54,7 @@ spi_slave_efb sspi_efb_inst (
     .spi_clk  (pin13_sclk),  
     .spi_miso (pin14_miso), 
     .spi_mosi (pin15_mosi), 
-    .spi_scsn (pin16_cs)
+    .spi_scsn (pin12_sn)
 );
 
 wire U_data_ready;
@@ -71,6 +72,10 @@ SPIInterface if_spi (
     .U_data(U_data)
 );
 
+wire U_Flag_read;
+wire [3:0] U_Flag_addr;
+wire [1:0] U_Flag_value;
+
 wire [9:0] U_R_Mem_addr;
 wire [17:0] U_R_Mem_value;
 
@@ -79,26 +84,40 @@ UserRegisters if_user_regs (
 
     .IO_SPI_data_ready(U_data_ready),
     .IO_SPI_data(U_data),
-    .IO_SPI_cs(pin16_cs),
+    .IO_SPI_cs(pin12_sn),
+
+    .IO_Flag_read(U_Flag_read),
+    .IO_Flag_addr(U_Flag_addr),
+    .IO_Flag_value(U_Flag_value),
+
     .IO_R_Mem_addr(U_R_Mem_addr),
     .IO_R_Mem_value(U_R_Mem_value),
 
-    .TestA(pin5)
-    // .TestB(pin0),
-    // .Test(pin1)
+    .Test(pin16_cs)
 );
 
 Main if_main (
     .IO_main_clk(main_clk),
     .IO_audio_clk(audio_clk),
 
-    .IO_SPI_cs(pin16_cs),
+    .IO_Flag_read(U_Flag_read),
+    .IO_Flag_addr(U_Flag_addr),
+    .IO_Flag_value(U_Flag_value),
+
+    .IO_SPI_cs(pin12_sn),
     .IO_User_Mem_addr(U_R_Mem_addr),
     .IO_User_Mem_value(U_R_Mem_value),
 
-    .TestA(pin0),
-    .TestB(pin1),
-    .Test(pin6_LED)
+    .IO_chan_A(pin2),
+    .IO_chan_B(pin3),
+    .IO_chan_C(pin4),
+    .IO_chan_D(pin5),
+
+    .IO_chan_E(pin8),
+    .IO_chan_F(pin9),
+    .IO_chan_G(pin10),
+    .IO_chan_H(pin11),
+    .T_k1(pin6_LED)
 );
 
 endmodule

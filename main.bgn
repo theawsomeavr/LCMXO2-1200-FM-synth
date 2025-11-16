@@ -4,7 +4,7 @@ Copyright (c) 1995 AT&T Corp.   All rights reserved.
 Copyright (c) 1995-2001 Lucent Technologies Inc.  All rights reserved.
 Copyright (c) 2001 Agere Systems   All rights reserved.
 Copyright (c) 2002-2024 Lattice Semiconductor Corporation,  All rights reserved.
-Fri Nov 14 23:46:42 2025
+Sat Nov 15 20:14:30 2025
 
 
 Command: bitgen -w /home/Goyco/khStuff/coding_stuff/fpga/fm_synth/build/main.ncd /home/Goyco/khStuff/coding_stuff/fpga/fm_synth/main.bit /home/Goyco/khStuff/coding_stuff/fpga/fm_synth/build/main_map.prf 
@@ -72,5 +72,5 @@ Bitstream Status: Final           Version 1.95.
  
 Saving bit stream in "/home/Goyco/khStuff/coding_stuff/fpga/fm_synth/main.bit".
 Total CPU Time: 1 secs 
-Total REAL Time: 0 secs 
-Peak Memory Usage: 372 MB
+Total REAL Time: 2 secs 
+Peak Memory Usage: 373 MB

@@ -1,19 +1,23 @@
 NOTE Copyright (C), 1992-2010, Lattice Semiconductor Corporation *
 NOTE All Rights Reserved *
-NOTE DATE CREATED: Fri Nov 14 23:46:43 2025 *
+NOTE DATE CREATED: Sat Nov 15 20:14:32 2025 *
 NOTE DESIGN NAME: Mapping *
 NOTE DEVICE NAME: LCMXO2-1200HC-6QFN32 *
 NOTE PIN ASSIGNMENTS *
 NOTE PINS pin15_mosi : 17 : inout *
 NOTE PINS pin14_miso : 10 : inout *
 NOTE PINS pin13_sclk : 9 : inout *
+NOTE PINS pin4 : 25 : out *
 NOTE PINS pin3 : 12 : out *
 NOTE PINS pin2 : 11 : out *
-NOTE PINS pin1 : 4 : out *
-NOTE PINS pin0 : 5 : out *
 NOTE PINS pin5 : 26 : out *
+NOTE PINS pin8 : 21 : out *
+NOTE PINS pin9 : 20 : out *
+NOTE PINS pin10 : 13 : out *
+NOTE PINS pin11 : 14 : out *
 NOTE PINS pin6_LED : 23 : out *
-NOTE PINS pin16_cs : 8 : in *
+NOTE PINS pin16_cs : 8 : out *
+NOTE PINS pin12_sn : 27 : in *
 NOTE PINS SYSCONFIG_PIN_SN : 16 : in *
 NOTE CONFIGURATION MODE: NONE *
 NOTE COMPRESSION: on *
